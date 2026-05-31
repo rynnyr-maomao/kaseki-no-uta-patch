@@ -1,0 +1,7 @@
+# build outputs
+*.rpo
+*.exe
+*.o
+*.obj
+*.a
+*.dll

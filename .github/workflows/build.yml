@@ -1,0 +1,39 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install 32-bit MinGW cross-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-i686 binutils-mingw-w64-i686
+
+      - name: Build KasekiResetState.rpo
+        run: make
+
+      - name: Verify (PE32 i386 DLL with required exports)
+        run: |
+          set -e
+          file KasekiResetState.rpo
+          i686-w64-mingw32-objdump -f KasekiResetState.rpo | grep -iq 'i386' \
+            && echo "arch: i386 OK"
+          for sym in PluginThisLibrary GetPluginString; do
+            i686-w64-mingw32-objdump -p KasekiResetState.rpo | grep -q "$sym" \
+              && echo "export: $sym OK" \
+              || { echo "MISSING export: $sym" >&2; exit 1; }
+          done
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KasekiResetState
+          path: KasekiResetState.rpo
+          if-no-files-found: error
