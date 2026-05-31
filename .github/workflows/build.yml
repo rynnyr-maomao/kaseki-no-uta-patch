@@ -5,11 +5,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write   # required to create releases / upload assets
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install 32-bit MinGW cross-compiler
         run: |
@@ -32,8 +35,18 @@ jobs:
           done
 
       - name: Upload plugin artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: KasekiResetState
           path: KasekiResetState.rpo
           if-no-files-found: error
+
+      # Publish a GitHub Release with the .rpo attached, but only when a
+      # version tag (e.g. v1.0) is pushed.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: KasekiResetState.rpo
+          generate_release_notes: true
+          fail_on_unmatched_files: true
